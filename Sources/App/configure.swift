@@ -1,6 +1,7 @@
 import Fluent
 import FluentPostgresDriver
 import Vapor
+import Leaf
 
 // configures your application
 public func configure(_ app: Application) throws {
@@ -14,6 +15,11 @@ public func configure(_ app: Application) throws {
   if (app.environment == .testing) {
     databaseName = "vapor-test"
     databasePort = 5433
+//    if let testPort = Environment.get("DATABASE_PORT") {
+//      databasePort = Int(testPort) ?? 5433
+//    } else {
+//      databasePort = 5433
+//    }
   } else {
     databaseName = "vapor_database"
     databasePort = 5432
@@ -41,9 +47,16 @@ public func configure(_ app: Application) throws {
   
   app.migrations.add(CreateUser())
   app.migrations.add(CreateAcronym())
+  app.migrations.add(CreateCategory())
+  app.migrations.add(CreateAcronymCategoryPivot())
+    
   
   app.logger.logLevel = .debug
   try app.autoMigrate().wait()
+
+  // Leaf
+  app.views.use(.leaf)
+
   
   // register routes
   try routes(app)
