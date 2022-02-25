@@ -11,6 +11,10 @@ struct WebsiteController: RouteCollection {
     routes.get("categories", ":categoryID", use: categoryHandler)
     routes.get("acronyms", "create", use: createAcronymHandler)
     routes.post("acronyms", "create", use: createAcronymPostHandler)
+    routes.get("acronyms", ":acronymID", "edit", use: editAcronymHandler)
+    routes.post("acronyms", ":acronymID", "edit", use: editAcronymPostHandler)
+    routes.post("acronyms", ":acronymID", "delete", use: deleteAcronymHandler)
+
 
   }
   
@@ -96,23 +100,95 @@ struct WebsiteController: RouteCollection {
     }
   }
 
+//  func createAcronymPostHandler(_ req: Request) throws -> EventLoopFuture<Response> {
+//    let data = try req.content.decode(CreateAcronymData.self)
+//    let acronym = Acronym(
+//      short: data.short,
+//      long: data.long,
+//      userID: data.userID)
+//
+//    return acronym.save(on: req.db).flatMapThrowing {
+//      guard let id = acronym.id else {
+//        throw Abort(.internalServerError)
+//      }
+//      return req.redirect(to: "/acronyms/\(id)")
+//    }
+//  }
+
   func createAcronymPostHandler(_ req: Request) throws -> EventLoopFuture<Response> {
-    let data = try req.content.decode(CreateAcronymData.self)
+    let data = try req.content.decode(CreateAcronymFormData.self)
     let acronym = Acronym(
       short: data.short,
       long: data.long,
       userID: data.userID)
     
-    return acronym.save(on: req.db).flatMapThrowing {
+    return acronym.save(on: req.db).flatMap {
       guard let id = acronym.id else {
-        throw Abort(.internalServerError)
+        return req.eventLoop
+          .future(error: Abort(.internalServerError))
       }
-      return req.redirect(to: "/acronyms/\(id)")
+      
+      var categorySaves: [EventLoopFuture<Void>] = []
+      for category in data.categories ?? [] {
+        categorySaves.append(
+          Category.addCategory(
+            category,
+            to: acronym,
+            on: req))
+      }
+      
+      let redirect = req.redirect(to: "/acronyms/\(id)")
+      return categorySaves.flatten(on: req.eventLoop).transform(to: redirect)
     }
   }
 
   
-}
+  func editAcronymHandler(_ req: Request) -> EventLoopFuture<View> {
+    let acronymFuture = Acronym
+      .find(req.parameters.get("acronymID"), on: req.db)
+      .unwrap(or: Abort(.notFound))
+    
+    let userQuery = User.query(on: req.db).all()
+    
+    return acronymFuture.and(userQuery)
+      .flatMap { acronym, users in
+        let context = EditAcronymContext(
+          acronym: acronym,
+          users: users)
+        return req.view.render("createAcronym", context)
+      }
+  }
+
+  func editAcronymPostHandler(_ req: Request) throws -> EventLoopFuture<Response> {
+    let updateData = try req.content.decode(CreateAcronymData.self)
+    
+    return Acronym
+      .find(req.parameters.get("acronymID"), on: req.db)
+      .unwrap(or: Abort(.notFound)).flatMap { acronym in
+        
+        acronym.short = updateData.short
+        acronym.long = updateData.long
+        acronym.$user.id = updateData.userID
+        
+        guard let id = acronym.id else {
+          let error = Abort(.internalServerError)
+          return req.eventLoop.future(error: error)
+        }
+        
+        let redirect = req.redirect(to: "/acronyms/\(id)")
+        return acronym.save(on: req.db).transform(to: redirect)
+      }
+  }
+  
+  func deleteAcronymHandler(_ req: Request) -> EventLoopFuture<Response> {
+    Acronym
+      .find(req.parameters.get("acronymID"), on: req.db)
+      .unwrap(or: Abort(.notFound)).flatMap { acronym in
+        acronym.delete(on: req.db)
+          .transform(to: req.redirect(to: "/"))
+      }
+  }
+} // end
 
 struct IndexContext: Encodable {
   let title: String
@@ -123,6 +199,7 @@ struct AcronymContext: Encodable {
   let title: String
   let acronym: Acronym
   let user: User
+
 }
 
 struct UserContext: Encodable {
@@ -150,4 +227,18 @@ struct CategoryContext: Encodable {
 struct CreateAcronymContext: Encodable {
   let title = "Create An Acronym"
   let users: [User]
+}
+
+struct EditAcronymContext: Encodable {
+  let title = "Edit Acronym"
+  let acronym: Acronym
+  let users: [User]
+  let editing = true
+}
+
+struct CreateAcronymFormData: Content {
+  let userID: UUID
+  let short: String
+  let long: String
+  let categories: [String]?
 }

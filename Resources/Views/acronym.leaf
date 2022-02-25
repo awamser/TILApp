@@ -1,8 +1,20 @@
 #extend("base"):
-#export("content"):
-<h1>#(acronym.short)</h1>
-<h2>#(acronym.long)</h2>
+  #export("content"):
+    <h1>#(acronym.short)</h1>
+    <h2>#(acronym.long)</h2>
+    
+    <p>Created by <a href="/users/#(user.id)/">#(user.name)</a></p>
+    <!-- <a class="btn btn-primary" href="/acronyms/#(acronym.id)/edit" role="button">Edit</a> -->
+    
 
-<p>Created by <a href="/users/#(user.id)/">#(user.name)</a></p>
-#endexport
-#endextend
+    
+    
+    <form method="post" action="/acronyms/#(acronym.id)/delete">
+      <a class="btn btn-primary" href="/acronyms/#(acronym.id)/edit" role="button">Edit</a>&nbsp;
+      
+      <input class="btn btn-danger" type="submit" value="Delete" />
+      </form>
+      
+      
+      #endexport
+      #endextend
