@@ -16,6 +16,13 @@ struct AcronymsController: RouteCollection {
     acronymsRoutes.post(":acronymID", "categories", ":categoryID", use: addCategoriesHandler)
     acronymsRoutes.get(":acronymID", "categories", use: getCategoriesHandler)
     acronymsRoutes.delete(":acronymID", "categories", ":categoryID", use: removeCategoriesHandler)
+    
+    // Auth
+    let basicAuthMiddleware = User.authenticator()
+    let guardAuthMiddleware = User.guardMiddleware()
+    let protected = acronymsRoutes.grouped(basicAuthMiddleware, guardAuthMiddleware)
+    protected.post(use: createHandler)
+
   }
   
   func getAllHandler(_ req: Request) -> EventLoopFuture<[Acronym]> {
@@ -77,11 +84,11 @@ struct AcronymsController: RouteCollection {
     return Acronym.query(on: req.db).sort(\.$short, .ascending).all()
   }
   
-  func getUserHandler(_ req: Request) -> EventLoopFuture<User> {
+  func getUserHandler(_ req: Request) -> EventLoopFuture<User.Public> {
     Acronym.find(req.parameters.get("acronymID"), on: req.db)
       .unwrap(or: Abort(.notFound))
       .flatMap { acronym in
-        acronym.$user.get(on: req.db)
+        acronym.$user.get(on: req.db).convertToPublic()
       }
   }
   
@@ -115,3 +122,4 @@ struct CreateAcronymData: Content {
   let long: String
   let userID: UUID
 }
+

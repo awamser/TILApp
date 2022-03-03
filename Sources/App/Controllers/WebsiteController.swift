@@ -199,7 +199,6 @@ struct AcronymContext: Encodable {
   let title: String
   let acronym: Acronym
   let user: User
-
 }
 
 struct UserContext: Encodable {
