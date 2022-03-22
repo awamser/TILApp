@@ -5,7 +5,7 @@ struct AcronymsController: RouteCollection {
   func boot(routes: RoutesBuilder) throws {
     let acronymsRoutes = routes.grouped("api", "acronyms")
     acronymsRoutes.get(use: getAllHandler)
-    acronymsRoutes.post(use: createHandler)
+    // acronymsRoutes.post(use: createHandler)    
     acronymsRoutes.get(":acronymID", use: getHandler)
     acronymsRoutes.put(":acronymID", use: updateHandler)
     acronymsRoutes.delete(":acronymID", use: deleteHandler)
