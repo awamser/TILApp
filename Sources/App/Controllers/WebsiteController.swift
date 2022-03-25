@@ -1,5 +1,5 @@
-import Vapor
 import Leaf
+import Vapor
 
 struct WebsiteController: RouteCollection {
   func boot(routes: RoutesBuilder) throws {
@@ -15,11 +15,10 @@ struct WebsiteController: RouteCollection {
     routes.post("acronyms", ":acronymID", "edit", use: editAcronymPostHandler)
     routes.post("acronyms", ":acronymID", "delete", use: deleteAcronymHandler)
 
-
   }
-  
+
   func indexHandler(_ req: Request) -> EventLoopFuture<View> {
-    
+
     Acronym.query(on: req.db).all().flatMap { acronyms in
       let context = IndexContext(
         title: "Home page",
@@ -27,9 +26,9 @@ struct WebsiteController: RouteCollection {
       return req.view.render("index", context)
     }
   }
-  
+
   func acronymHandler(_ req: Request) -> EventLoopFuture<View> {
-    
+
     Acronym.find(req.parameters.get("acronymID"), on: req.db)
       .unwrap(or: Abort(.notFound))
       .flatMap { acronym in
@@ -42,10 +41,9 @@ struct WebsiteController: RouteCollection {
         }
       }
   }
-  
 
   func userHandler(_ req: Request) -> EventLoopFuture<View> {
-    
+
     User.find(req.parameters.get("userID"), on: req.db)
       .unwrap(or: Abort(.notFound))
       .flatMap { user in
@@ -60,7 +58,7 @@ struct WebsiteController: RouteCollection {
   }
 
   func allUsersHandler(_ req: Request) -> EventLoopFuture<View> {
-    
+
     User.query(on: req.db)
       .all()
       .flatMap { users in
@@ -79,7 +77,7 @@ struct WebsiteController: RouteCollection {
   }
 
   func categoryHandler(_ req: Request) -> EventLoopFuture<View> {
-    
+
     Category.find(req.parameters.get("categoryID"), on: req.db)
       .unwrap(or: Abort(.notFound)).flatMap { category in
         category.$acronyms.get(on: req.db).flatMap { acronyms in
@@ -91,29 +89,29 @@ struct WebsiteController: RouteCollection {
         }
       }
   }
-  
+
   func createAcronymHandler(_ req: Request) -> EventLoopFuture<View> {
-    
+
     User.query(on: req.db).all().flatMap { users in
       let context = CreateAcronymContext(users: users)
       return req.view.render("createAcronym", context)
     }
   }
 
-//  func createAcronymPostHandler(_ req: Request) throws -> EventLoopFuture<Response> {
-//    let data = try req.content.decode(CreateAcronymData.self)
-//    let acronym = Acronym(
-//      short: data.short,
-//      long: data.long,
-//      userID: data.userID)
-//
-//    return acronym.save(on: req.db).flatMapThrowing {
-//      guard let id = acronym.id else {
-//        throw Abort(.internalServerError)
-//      }
-//      return req.redirect(to: "/acronyms/\(id)")
-//    }
-//  }
+  //  func createAcronymPostHandler(_ req: Request) throws -> EventLoopFuture<Response> {
+  //    let data = try req.content.decode(CreateAcronymData.self)
+  //    let acronym = Acronym(
+  //      short: data.short,
+  //      long: data.long,
+  //      userID: data.userID)
+  //
+  //    return acronym.save(on: req.db).flatMapThrowing {
+  //      guard let id = acronym.id else {
+  //        throw Abort(.internalServerError)
+  //      }
+  //      return req.redirect(to: "/acronyms/\(id)")
+  //    }
+  //  }
 
   func createAcronymPostHandler(_ req: Request) throws -> EventLoopFuture<Response> {
     let data = try req.content.decode(CreateAcronymFormData.self)
@@ -121,13 +119,13 @@ struct WebsiteController: RouteCollection {
       short: data.short,
       long: data.long,
       userID: data.userID)
-    
+
     return acronym.save(on: req.db).flatMap {
       guard let id = acronym.id else {
         return req.eventLoop
           .future(error: Abort(.internalServerError))
       }
-      
+
       var categorySaves: [EventLoopFuture<Void>] = []
       for category in data.categories ?? [] {
         categorySaves.append(
@@ -136,20 +134,20 @@ struct WebsiteController: RouteCollection {
             to: acronym,
             on: req))
       }
-      
+
       let redirect = req.redirect(to: "/acronyms/\(id)")
       return categorySaves.flatten(on: req.eventLoop).transform(to: redirect)
     }
   }
 
-  
   func editAcronymHandler(_ req: Request) -> EventLoopFuture<View> {
-    let acronymFuture = Acronym
+    let acronymFuture =
+      Acronym
       .find(req.parameters.get("acronymID"), on: req.db)
       .unwrap(or: Abort(.notFound))
-    
+
     let userQuery = User.query(on: req.db).all()
-    
+
     return acronymFuture.and(userQuery)
       .flatMap { acronym, users in
         let context = EditAcronymContext(
@@ -161,25 +159,26 @@ struct WebsiteController: RouteCollection {
 
   func editAcronymPostHandler(_ req: Request) throws -> EventLoopFuture<Response> {
     let updateData = try req.content.decode(CreateAcronymData.self)
-    
-    return Acronym
+
+    return
+      Acronym
       .find(req.parameters.get("acronymID"), on: req.db)
       .unwrap(or: Abort(.notFound)).flatMap { acronym in
-        
+
         acronym.short = updateData.short
         acronym.long = updateData.long
         acronym.$user.id = updateData.userID
-        
+
         guard let id = acronym.id else {
           let error = Abort(.internalServerError)
           return req.eventLoop.future(error: error)
         }
-        
+
         let redirect = req.redirect(to: "/acronyms/\(id)")
         return acronym.save(on: req.db).transform(to: redirect)
       }
   }
-  
+
   func deleteAcronymHandler(_ req: Request) -> EventLoopFuture<Response> {
     Acronym
       .find(req.parameters.get("acronymID"), on: req.db)
@@ -188,7 +187,7 @@ struct WebsiteController: RouteCollection {
           .transform(to: req.redirect(to: "/"))
       }
   }
-} // end
+}  // end
 
 struct IndexContext: Encodable {
   let title: String
