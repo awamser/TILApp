@@ -16,6 +16,10 @@ struct UsersController: RouteCollection {
     usersRoute.get(":userID", use: getHandler)
     usersRoute.get(":userID", "acronyms", use: getAcronymsHandler)
 
+    let basicAuthMiddleware = User.authenticator()
+    let basicAuthGroup = usersRoute.grouped(basicAuthMiddleware)
+    basicAuthGroup.post("login", use: loginHandler)
+
   }
 
   func createHandler(_ req: Request) throws -> EventLoopFuture<User.Public> {
