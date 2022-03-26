@@ -29,6 +29,8 @@ struct UsersController: RouteCollection {
 
   func getAllHandler(_ req: Request) -> EventLoopFuture<[User.Public]> {
     // User.query(on: req.db).all()
+
+    // uses the extension for EventLoopFuture<[User]>
     User.query(on: req.db).all().convertToPublic()
   }
 
