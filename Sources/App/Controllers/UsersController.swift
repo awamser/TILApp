@@ -22,6 +22,7 @@ struct UsersController: RouteCollection {
 
   }
 
+  // returns User.Public (hides password)
   func createHandler(_ req: Request) throws -> EventLoopFuture<User.Public> {
     let user = try req.content.decode(User.self)
     user.password = try Bcrypt.hash(user.password)

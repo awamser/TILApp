@@ -53,9 +53,7 @@ struct AcronymsController: RouteCollection {
       }
   }
 
-  func deleteHandler(_ req: Request)
-    -> EventLoopFuture<HTTPStatus>
-  {
+  func deleteHandler(_ req: Request) -> EventLoopFuture<HTTPStatus> {
     Acronym.find(req.parameters.get("acronymID"), on: req.db)
       .unwrap(or: Abort(.notFound))
       .flatMap { acronym in
@@ -88,6 +86,7 @@ struct AcronymsController: RouteCollection {
     return Acronym.query(on: req.db).sort(\.$short, .ascending).all()
   }
 
+  // returns the user associated with the acronym
   func getUserHandler(_ req: Request) -> EventLoopFuture<User.Public> {
     Acronym.find(req.parameters.get("acronymID"), on: req.db)
       .unwrap(or: Abort(.notFound))
