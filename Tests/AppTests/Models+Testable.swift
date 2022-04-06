@@ -1,5 +1,6 @@
-@testable import App
 import Fluent
+
+@testable import App
 
 extension User {
   static func create(
@@ -21,11 +22,11 @@ extension Acronym {
     on database: Database
   ) throws -> Acronym {
     var acronymsUser = user
-    
+
     if acronymsUser == nil {
       acronymsUser = try User.create(on: database)
     }
-    
+
     let acronym = Acronym(
       short: short,
       long: long,
@@ -45,4 +46,3 @@ extension App.Category {
     return category
   }
 }
-

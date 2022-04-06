@@ -18,10 +18,15 @@ struct AcronymsController: RouteCollection {
     acronymsRoutes.delete(":acronymID", "categories", ":categoryID", use: removeCategoriesHandler)
 
     // Auth
-    let basicAuthMiddleware = User.authenticator()
+    // let basicAuthMiddleware = User.authenticator()
+    // let guardAuthMiddleware = User.guardMiddleware()
+    // let protected = acronymsRoutes.grouped(basicAuthMiddleware, guardAuthMiddleware)
+    // protected.post(use: createHandler)
+
+    let tokenAuthMiddleware = Token.authenticator()
     let guardAuthMiddleware = User.guardMiddleware()
-    let protected = acronymsRoutes.grouped(basicAuthMiddleware, guardAuthMiddleware)
-    protected.post(use: createHandler)
+    let tokenAuthGroup = acronymsRoutes.grouped(tokenAuthMiddleware, guardAuthMiddleware)
+    tokenAuthGroup.post(use: createHandler)
 
   }
 
@@ -31,7 +36,14 @@ struct AcronymsController: RouteCollection {
 
   func createHandler(_ req: Request) throws -> EventLoopFuture<Acronym> {
     let data = try req.content.decode(CreateAcronymData.self)
-    let acronym = Acronym(short: data.short, long: data.long, userID: data.userID)
+    // let acronym = Acronym(short: data.short, long: data.long, userID: data.userID)
+
+    let user = try req.auth.require(User.self)
+    let acronym = try Acronym(
+      short: data.short,
+      long: data.long,
+      userID: user.requireID())
+
     return acronym.save(on: req.db).map { acronym }
   }
 
@@ -42,11 +54,16 @@ struct AcronymsController: RouteCollection {
 
   func updateHandler(_ req: Request) throws -> EventLoopFuture<Acronym> {
     let updateData = try req.content.decode(CreateAcronymData.self)
+
+    let user = try req.auth.require(User.self)
+    let userID = try user.requireID()
+
     return Acronym.find(req.parameters.get("acronymID"), on: req.db)
       .unwrap(or: Abort(.notFound)).flatMap { acronym in
         acronym.short = updateData.short
         acronym.long = updateData.long
-        acronym.$user.id = updateData.userID
+        // acronym.$user.id = updateData.userID
+        acronym.$user.id = userID
         return acronym.save(on: req.db).map {
           acronym
         }
@@ -127,5 +144,5 @@ struct AcronymsController: RouteCollection {
 struct CreateAcronymData: Content {
   let short: String
   let long: String
-  let userID: UUID
+  // let userID: UUID
 }

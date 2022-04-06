@@ -158,7 +158,8 @@ struct WebsiteController: RouteCollection {
   }
 
   func editAcronymPostHandler(_ req: Request) throws -> EventLoopFuture<Response> {
-    let updateData = try req.content.decode(CreateAcronymData.self)
+    let updateData = try req.content.decode(CreateAcronymFormData.self)
+    // let updateData = try req.content.decode(CreateAcronymData.self)
 
     return
       Acronym
@@ -167,6 +168,7 @@ struct WebsiteController: RouteCollection {
 
         acronym.short = updateData.short
         acronym.long = updateData.long
+
         acronym.$user.id = updateData.userID
 
         guard let id = acronym.id else {
